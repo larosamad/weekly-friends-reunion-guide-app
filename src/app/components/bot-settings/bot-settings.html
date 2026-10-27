@@ -1,0 +1,68 @@
+@if (!editor.draft() || editConnection()) {
+  <view class="card">
+    <text class="heading">{{ guided() ? '1. Collega la tua copia GitHub' : 'Connessione GitHub' }}</text>
+    <text class="hint">{{ guided() ? 'Apri la copia creata nel tuo account al passaggio 4.' : 'Apri il repository del bot nel tuo account GitHub.' }} Il suo link ha questa forma:</text>
+    <text class="example">github.com/maddalena/weekly-friends-reunion-telegram-poll-bot</text>
+    @for (field of editor.connectionFields; track field.key) {
+      @if (field.key !== 'branch' || showBranch() || editor.connection().branch !== 'main') {
+        <text class="label">{{ field.label }}</text>
+        <text class="hint">{{ field.hint }}</text>
+        <text-input [accessibilityLabel]="field.label" [placeholder]="field.placeholder" [value]="editor.connection()[field.key]"
+          [secureTextEntry]="field.key === 'token'" autoCapitalize="none" [autoCorrect]="false"
+          [editable]="!editor.busy()" (changeText)="editor.setConnection(field.key, $event)" />
+      }
+    }
+    @if (!showBranch() && editor.connection().branch === 'main') {
+      <pressable accessibilityRole="button" (press)="showBranch.set(true)"><text class="action">Usi un branch diverso da main?</text></pressable>
+    }
+    <pressable class="button" accessibilityRole="button" [disabled]="editor.busy()" (press)="editor.load(); editConnection.set(false)">
+      <text class="buttonLabel">{{ editor.busy() ? 'Caricamento…' : 'Carica configurazione' }}</text>
+    </pressable>
+    <text class="hint">Dopo il caricamento vedrai le domande e le risposte del sondaggio da personalizzare.</text>
+  </view>
+} @else {
+  <text class="hint">Collegato a {{ editor.connection().owner }}/{{ editor.connection().repo }}</text>
+  <pressable accessibilityRole="button" (press)="editConnection.set(true)"><text class="action">Modifica collegamento GitHub</text></pressable>
+}
+@if (editor.draft(); as config) {
+  <view class="card">
+    <text class="heading">{{ guided() ? '2. Personalizza il sondaggio' : 'Sondaggio settimanale' }}</text>
+    <text class="hint">{{ guided() ? 'Questi sono i valori già presenti. Modifica quelli che vuoi cambiare. Se ti vanno bene, puoi premere Continua senza salvare.' : 'Modifica le domande e le risposte, poi premi Salva su GitHub.' }}</text>
+    @for (field of editor.configFields; track field.key) {
+      <text class="label">{{ field.label }}</text>
+      <text class="hint">{{ field.hint }}</text>
+      <text-input [accessibilityLabel]="field.label" [value]="config[field.key]"
+        [editable]="!editor.busy()" (changeText)="editor.setField(field.key, $event)" />
+    }
+    <text class="label">Voti minimi per lo spareggio</text>
+    <text class="hint">Quanti voti servono a una risposta per passare al secondo sondaggio. Se non sai cosa scegliere, lascia il valore attuale.</text>
+    <text-input accessibilityLabel="Voti minimi per lo spareggio" keyboardType="number-pad"
+      [value]="editor.votes()" [editable]="!editor.busy()" (changeText)="editor.votes.set($event); editor.dirty.set(true)" />
+    <text class="label">Opzioni (da 2 a 10)</text>
+    <text class="hint">Scrivi le risposte tra cui scegliere su Telegram, es. Venerdì sera, Sabato sera e Non posso. Puoi aggiungerle o rimuoverle.</text>
+    @for (option of config.OPTIONS; track $index; let i = $index) {
+      <view class="option">
+        <text-input [style]="{ flex: 1 }" [accessibilityLabel]="'Opzione ' + (i + 1)"
+          [value]="option" [editable]="!editor.busy()" (changeText)="editor.setOption(i, $event)" />
+        <pressable accessibilityRole="button" [accessibilityLabel]="'Rimuovi opzione ' + (i + 1)"
+          [disabled]="editor.busy() || config.OPTIONS.length <= 2" (press)="editor.removeOption(i)">
+          <text class="action">Rimuovi</text>
+        </pressable>
+      </view>
+    }
+    <pressable accessibilityRole="button" [disabled]="editor.busy() || config.OPTIONS.length >= 10" (press)="editor.addOption()">
+      <text class="action">+ Aggiungi opzione</text>
+    </pressable>
+    <text class="hint">{{ editor.dirty() ? 'Hai modificato il sondaggio: premi Salva su GitHub prima di continuare.' : guided() ? 'Tutto pronto. Premi Continua in fondo per passare alla prova.' : 'Configurazione salvata.' }}</text>
+    <pressable class="button" accessibilityRole="button" [disabled]="editor.busy() || !editor.dirty()" (press)="editor.save()">
+      <text class="buttonLabel">Salva su GitHub</text>
+    </pressable>
+    @if (editor.conflict()) {
+      <pressable accessibilityRole="button" [disabled]="editor.busy()" (press)="editor.reload()">
+        <text class="action">Scarta modifiche e ricarica</text>
+      </pressable>
+    }
+  </view>
+}
+@if (editor.busy()) { <text class="hint">Operazione in corso…</text> }
+<text accessibilityRole="alert" class="status">{{ editor.status() }}</text>

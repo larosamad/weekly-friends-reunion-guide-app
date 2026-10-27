@@ -1,0 +1,2 @@
+:host { gap: 16px; }
+.example { color: var(--color-text); background-color: var(--color-background); padding: 12px; border-radius: 8px; font-size: 13px; }

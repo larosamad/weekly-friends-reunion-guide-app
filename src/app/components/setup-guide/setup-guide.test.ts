@@ -1,10 +1,10 @@
 import { cleanup, render, screen, userEvent } from '@ng-native/testing';
 import { afterEach, expect, test, vi } from 'vitest';
-import { App } from './app';
+import { App } from '../../app';
 import { SetupGuide } from './setup-guide';
-import { findGroupIds, SETUP_STORAGE, type SetupState } from './setup-progress';
-import { BotConfigRepository } from './bot-config';
-import { TelegramSetup } from './telegram-setup';
+import { findGroupIds, SETUP_STORAGE, type SetupState } from '../../services/setup-progress';
+import { BotConfigRepository } from '../../services/bot-config';
+import { TelegramSetup } from '../../services/telegram-setup';
 
 afterEach(cleanup);
 const state: SetupState = {
@@ -94,12 +94,15 @@ test('finds groups without URLs or JSON and lets the user select one', async () 
     inputs: { connection },
     providers: [
       { provide: SETUP_STORAGE, useValue: { read: () => JSON.stringify({ ...state, step: 2, botUsername: 'reunion_test_bot' }), write: (raw: string) => { saved = raw; } } },
-      { provide: TelegramSetup, useValue: { findGroups } },
+      { provide: TelegramSetup, useValue: { prepareGroups: vi.fn().mockResolvedValue([]), findGroups } },
     ],
   });
   const user = userEvent.setup();
   expect(screen.queryByText('https://api.telegram.org/botIL_TUO_TOKEN/getUpdates')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Cerca il mio gruppo' })).toBeNull();
   await user.type(screen.getByLabelText('Token Telegram di BotFather'), '123:private-token');
+  await user.press(screen.getByRole('button', { name: 'Prepara il bot' }));
+  await screen.findByText('2. Invia il comando nel gruppo');
   await user.press(screen.getByRole('button', { name: 'Cerca il mio gruppo' }));
   await screen.findByText('Amici del cinema');
   expect(findGroups).toHaveBeenCalledExactlyOnceWith('123:private-token', 'reunion_test_bot');
@@ -115,13 +118,36 @@ test('empty group search explains how to retry', async () => {
     inputs: { connection },
     providers: [
       { provide: SETUP_STORAGE, useValue: { read: () => JSON.stringify({ ...state, step: 2 }), write: () => {} } },
-      { provide: TelegramSetup, useValue: { findGroups: vi.fn().mockResolvedValue([]) } },
+      { provide: TelegramSetup, useValue: { prepareGroups: vi.fn().mockResolvedValue([]), findGroups: vi.fn().mockResolvedValue([]) } },
     ],
   });
   const user = userEvent.setup();
   await user.type(screen.getByLabelText('Token Telegram di BotFather'), '123:token');
+  await user.press(screen.getByRole('button', { name: 'Prepara il bot' }));
+  await screen.findByText('2. Invia il comando nel gruppo');
   await user.press(screen.getByRole('button', { name: 'Cerca il mio gruppo' }));
   await screen.findByText('Il gruppo non compare ancora?');
   await user.press(screen.getByRole('button', { name: 'Continua' }));
   expect(screen.getByText('PASSAGGIO 3 DI 6')).toBeTruthy();
+});
+
+
+test('offers already available groups during preparation and invalidates preparation when the token changes', async () => {
+  const prepareGroups = vi.fn().mockResolvedValue([{ id: '-100456', title: 'Amici del cinema' }]);
+  await render(SetupGuide, {
+    inputs: { connection },
+    providers: [
+      { provide: SETUP_STORAGE, useValue: { read: () => JSON.stringify({ ...state, step: 2, botUsername: 'reunion_test_bot' }), write: () => {} } },
+      { provide: TelegramSetup, useValue: { prepareGroups } },
+    ],
+  });
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText('Token Telegram di BotFather'), '123:token');
+  await user.press(screen.getByRole('button', { name: 'Prepara il bot' }));
+  await screen.findByText('Amici del cinema');
+  expect(prepareGroups).toHaveBeenCalledWith('123:token', 'reunion_test_bot');
+  await user.type(screen.getByLabelText('Token Telegram di BotFather'), 'x');
+  expect(screen.queryByText('Amici del cinema')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Cerca il mio gruppo' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Prepara il bot' })).toBeTruthy();
 });

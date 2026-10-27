@@ -51,7 +51,7 @@ export class BotConfigRepository {
     const messages: Record<number, string> = {
       401: 'Token GitHub non valido o scaduto.',
       403: 'Accesso negato: controlla i permessi Contents (configurazione), Actions (prova) e i limiti GitHub.',
-      404: 'Repository, branch o bot_config.json non trovato. Pubblica prima i file del bot.',
+      404: 'GitHub non trova la risorsa richiesta oppure il token non ha accesso alla tua copia. Controlla il collegamento e i permessi del token.',
       409: 'La configurazione è cambiata su GitHub. Ricarica prima di salvare.',
       422: 'Salvataggio rifiutato: controlla le regole e i permessi del branch.',
     };
@@ -59,6 +59,7 @@ export class BotConfigRepository {
   }
   async load(c: Connection): Promise<{ config: BotConfig; sha: string }> {
     const response = await fetch(`${this.url(c)}?ref=${encodeURIComponent(c.branch.trim())}`, { headers: this.headers(c) });
+    if (response.status === 404) await this.explainMissingConfig(c);
     this.check(response);
     const file = await response.json();
     if (file.encoding !== 'base64' || typeof file.content !== 'string' || typeof file.sha !== 'string') throw new Error('Risposta GitHub non valida.');
@@ -67,6 +68,19 @@ export class BotConfigRepository {
     validateConfig(config);
     return { config, sha: file.sha };
   }
+  private async explainMissingConfig(c: Connection): Promise<never> {
+    const base = this.url(c).replace('/contents/bot_config.json', '');
+    const repository = await fetch(base, { headers: this.headers(c) });
+    if (repository.status === 404)
+      throw new Error(`Non riesco ad accedere a ${c.owner.trim()}/${c.repo.trim()}. Controlla proprietario e nome del progetto. Se sono corretti, verifica che il token GitHub includa proprio questa copia.`);
+    this.check(repository);
+    const branch = await fetch(`${base}/branches/${encodeURIComponent(c.branch.trim())}`, { headers: this.headers(c) });
+    if (branch.status === 404)
+      throw new Error(`Il progetto è accessibile, ma il branch ${c.branch.trim()} non esiste. Apri il progetto su GitHub e inserisci il nome del branch mostrato sopra l’elenco dei file.`);
+    this.check(branch);
+    throw new Error(`Il progetto e il branch sono accessibili, ma manca bot_config.json nella cartella principale. Questa copia non è compatibile con la personalizzazione dall’app: serve la versione del bot che include quel file. Non occorre rigenerare il token.`);
+  }
+
   async save(c: Connection, config: BotConfig, sha: string): Promise<string> {
     validateConfig(config);
     const response = await fetch(this.url(c), {

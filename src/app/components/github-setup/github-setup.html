@@ -1,0 +1,46 @@
+<text class="hint">Apri GitHub e segui una sezione alla volta. Puoi tornare alle precedenti toccando il titolo.</text>
+@for (title of sections; track $index; let i = $index) {
+  <view class="section">
+    <pressable accessibilityRole="button" [accessibilityLabel]="(i + 1) + '. ' + title"
+      [accessibilityState]="{ expanded: section() === i }" (press)="showSection(i)">
+      <text class="section-title">{{ i + 1 }}. {{ title }} {{ section() === i ? '−' : '+' }}</text>
+    </pressable>
+    @if (section() === i) {
+      @switch (i) {
+        @case (0) {
+          <text class="hint">Apri GitHub e premi Crea copia (Create fork) per avere il progetto nel tuo account.</text>
+          <pressable class="button" accessibilityRole="button" (press)="open('https://github.com/larosamad/weekly-friends-reunion-telegram-poll-bot/fork')">
+            <text class="buttonLabel">Apri GitHub e crea la copia</text>
+          </pressable>
+          <pressable accessibilityRole="button" (press)="showSection(1)"><text class="action">Ho creato la copia →</text></pressable>
+        }
+        @case (1) {
+          <text class="hint">Nella tua copia apri Impostazioni (Settings), poi Segreti e variabili (Secrets and variables) → Actions. Premi Nuovo segreto (New repository secret) e salva questi due valori, uno alla volta:</text>
+          <text class="label">Nome: BOT_TOKEN</text>
+          <text class="hint">Valore: il token ricevuto da BotFather.</text>
+          <text class="label">Nome: CHAT_ID</text>
+          <text selectable="true" class="code">{{ progress.state().chatId }}</text>
+          <pressable accessibilityRole="button" (press)="showSection(2)"><text class="action">Ho salvato i due valori →</text></pressable>
+        }
+        @case (2) {
+          <text class="hint">Apri Impostazioni (Settings) → Actions → Generale (General). Nella sezione Permessi di esecuzione (Workflow permissions), seleziona Lettura e scrittura (Read and write permissions), poi premi Salva (Save).</text>
+          <text class="hint">Poi apri la scheda Actions. Se GitHub chiede di abilitare le esecuzioni automatiche, conferma.</text>
+          <pressable accessibilityRole="button" (press)="showSection(3)"><text class="action">Ho attivato le esecuzioni →</text></pressable>
+        }
+        @case (3) {
+          <text class="hint">Per collegare l’app al tuo progetto serve un codice di accesso GitHub, chiamato token. Lo crei così:</text>
+          <pressable class="button" accessibilityRole="button" (press)="open('https://github.com/settings/personal-access-tokens/new')"><text class="buttonLabel">Apri GitHub per creare il codice</text></pressable>
+          <text class="label">1. Dai un nome al codice</text>
+          <text class="hint">Nel campo Nome (Token name) scrivi Friends Reunion. Scegli una scadenza (Expiration).</text>
+          <text class="label">2. Scegli il tuo progetto</text>
+          <text class="hint">Come proprietario (Resource owner) scegli il tuo account. In Accesso ai progetti (Repository access), seleziona Solo progetti selezionati (Only select repositories). Cerca e seleziona la copia creata all’inizio di questo passaggio.</text>
+          <text class="label">3. Consenti le due operazioni necessarie</text>
+          <text class="hint">Nella sezione Permessi (Permissions), aggiungi Contenuti (Contents) e Azioni (Actions). Per entrambi scegli Lettura e scrittura (Read and write).</text>
+          <text class="label">4. Genera e copia il codice</text>
+          <text class="hint">Premi Genera codice (Generate token), poi copia il codice lungo che compare. GitHub lo mostra una sola volta: copialo prima di chiudere la pagina.</text>
+          <text class="hint">Torna nell’app e premi Continua. Incolla il codice nel campo Token GitHub del prossimo passaggio.</text>
+        }
+      }
+    }
+  </view>
+}

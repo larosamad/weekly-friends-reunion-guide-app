@@ -1,0 +1,19 @@
+.card { padding: 20px; gap: 16px; background-color: var(--color-surface); border-radius: 20px; }
+text { color: var(--color-text); font-size: 16px; line-height: 24px; }
+.eyebrow { color: var(--color-text-muted); font-size: 12px; font-weight: 700; letter-spacing: 2px; }
+.title { color: var(--color-text); font-size: 24px; font-weight: 700; }
+.hint { color: var(--color-text-muted); font-size: 14px; line-height: 21px; }
+.label { font-weight: 600; }
+.code { background-color: var(--color-background); padding: 12px; border-radius: 8px; font-size: 14px; }
+.command { color: var(--color-text); background-color: var(--color-background); padding: 14px; border-radius: 10px; border-left-width: 3px; border-left-color: var(--color-border); font-size: 16px; font-weight: 600; }
+text-input { color: var(--color-text); background-color: var(--color-background); padding: 12px; border-radius: 10px; font-size: 16px; }
+.action { color: var(--color-primary); padding: 8px; font-weight: 600; }
+.button { background-color: var(--color-primary); border-radius: 12px; padding: 16px; align-items: center; }
+.buttonLabel { color: var(--color-surface); font-weight: 600; }
+.navigation { flex-direction: row; justify-content: space-between; align-items: center; gap: 12px; }
+.progress { flex-direction: row; gap: 5px; }
+.instruction { gap: 10px; }
+.group { padding: 16px; gap: 4px; border-width: 1px; border-color: var(--color-border); border-radius: 12px; background-color: var(--color-background); }
+.success { color: var(--color-text); background-color: var(--color-background); padding: 14px; border-radius: 10px; }
+.progress-segment { flex: 1; height: 5px; border-radius: 3px; background-color: var(--color-border); }
+.progress-complete { background-color: var(--color-primary); }

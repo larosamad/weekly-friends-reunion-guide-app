@@ -8,22 +8,24 @@ import { currentConditions, deviceTokens, watchConditions } from '@ng-native/dev
 import { getFabricUIManager, registerPlatformComponents } from '@ng-native/fabric';
 import { App } from './app/app.ts';
 import { File, Paths } from 'expo-file-system';
-import { SETUP_STORAGE } from './app/setup-progress';
+import { SETUP_STORAGE } from './app/services/setup-progress.ts';
 
 registerPlatformComponents(Platform.OS);
 
 AppRegistry.registerRunnable('main', ({ rootTag }) => {
 	const app = mount(Number(rootTag), App, getFabricUIManager(), {
-		providers: [{ provide: SETUP_STORAGE, useValue: {
-			read: () => {
-				const file = new File(Paths.document, 'friends-reunion-setup.json');
-				return file.exists ? file.textSync() : null;
-			},
-			write: (value: string) => {
-				const file = new File(Paths.document, 'friends-reunion-setup.json');
-				file.write(value);
-			},
-		} }],
+		providers: [{
+			provide: SETUP_STORAGE, useValue: {
+				read: () => {
+					const file = new File(Paths.document, 'friends-reunion-setup.json');
+					return file.exists ? file.textSync() : null;
+				},
+				write: (value: string) => {
+					const file = new File(Paths.document, 'friends-reunion-setup.json');
+					file.write(value);
+				},
+			}
+		}],
 		// Colours, as the integers the platform wants.
 		processColor,
 		// What `@media` resolves against. Without it every media query is false and a responsive

@@ -1,0 +1,122 @@
+<view class="card">
+  <text class="eyebrow">PASSAGGIO {{ progress.state().step + 1 }} DI 6</text>
+  <view class="progress">
+    @for (title of titles; track $index) {
+      <view class="progress-segment" [class.progress-complete]="$index <= progress.state().step" />
+    }
+  </view>
+  <text class="title">{{ titles[progress.state().step] }}</text>
+  @switch (progress.state().step) {
+    @case (0) {
+      <text>Apri BotFather su Telegram e invia questo comando:</text>
+      <text [selectable]="true" class="command" [style]="commandStyle">/newbot</text>
+      <text>Scegli un nome e uno username che termini con bot. BotFather ti consegnerà il token del tuo bot.</text>
+      <text class="hint">Conserva il token: lo inserirai nei Secrets GitHub al passaggio 4. Non inviarlo nella chat del gruppo.</text>
+      <pressable accessibilityRole="button" (press)="open('https://t.me/BotFather')"><text class="action">Apri BotFather</text></pressable>
+      <text class="label">Username del bot (senza @)</text>
+      <text-input accessibilityLabel="Username del bot" autoCapitalize="none" [autoCorrect]="false"
+        [value]="progress.state().botUsername" (changeText)="progress.update({ botUsername: $event.trim().replace('@', '') })" />
+    }
+    @case (1) {
+      <text>Aggiungi il bot al gruppo in cui vuoi organizzare gli incontri. Puoi usare il pulsante qui sotto oppure aprire il gruppo, scegliere Aggiungi membri e cercare lo username del bot.</text>
+      <pressable accessibilityRole="button" (press)="open('https://t.me/' + progress.state().botUsername + '?startgroup=true')"><text class="action">Aggiungi il bot a un gruppo</text></pressable>
+      <text>Verifica che il bot sia tra i membri e che possa inviare messaggi e sondaggi nelle autorizzazioni del gruppo.</text>
+      <text class="hint">Al prossimo passaggio prepareremo il bot e ti mostreremo il comando per collegare il gruppo.</text>
+    }
+    @case (2) {
+      <text>Collega il tuo gruppo, anche privato. Prima prepara il bot qui, poi invia il comando su Telegram.</text>
+      <view class="instruction">
+        <text class="label">1. Prepara il bot</text>
+        <text class="hint">Incolla il token ricevuto da BotFather quando hai creato @{{ progress.state().botUsername }}. Non usare il token GitHub.</text>
+        <text-input accessibilityLabel="Token Telegram di BotFather" placeholder="Incolla qui il token del bot"
+          [secureTextEntry]="true" autoCapitalize="none" [autoCorrect]="false" [editable]="!searching()"
+          [value]="telegramToken()" (changeText)="setTelegramToken($event)" />
+        <text class="hint">Il token viene usato solo per contattare Telegram e non viene salvato sul dispositivo.</text>
+        @if (!prepared()) {
+          <pressable class="button" accessibilityRole="button" [disabled]="searching() || !telegramToken().trim()" (press)="prepareGroups()">
+            <text class="buttonLabel">{{ searching() ? 'Preparazione in corso…' : 'Prepara il bot' }}</text>
+          </pressable>
+        }
+      </view>
+      @if (prepared()) {
+        @if (!canContinue()) {
+          <view class="instruction">
+            <text class="label">2. Invia il comando nel gruppo</text>
+            <text class="hint">Il bot è pronto. Apri Telegram, entra nel gruppo a cui lo hai aggiunto e invia questo comando. Invialo dopo aver preparato il bot in questa schermata.</text>
+            <text [selectable]="true" class="command" [style]="commandStyle">/start@{{ progress.state().botUsername }}</text>
+            <text class="hint">Non inviarlo a BotFather o in privato al bot. Non serve che il bot risponda.</text>
+          </view>
+          <view class="instruction">
+            <text class="label">3. Torna qui e cerca il gruppo</text>
+            <pressable class="button" accessibilityRole="button" [disabled]="searching()" (press)="searchGroups()">
+              <text class="buttonLabel">{{ searching() ? 'Ricerca in corso…' : 'Cerca il mio gruppo' }}</text>
+            </pressable>
+          </view>
+          @if (searched() && !groups().length) {
+            <view class="instruction">
+              <text class="label">Il gruppo non compare ancora?</text>
+              <text class="hint">Controlla che @{{ progress.state().botUsername }} sia tra i membri e che il comando sia stato inviato nel gruppo dopo la preparazione.</text>
+            </view>
+          }
+        }
+      }
+      @for (group of groups(); track group.id) {
+        <pressable class="group" accessibilityRole="button" [accessibilityLabel]="'Seleziona ' + group.title"
+          [accessibilityState]="{ selected: progress.state().chatId === group.id }"
+          (press)="progress.update({ chatId: group.id })">
+          <text class="label">{{ group.title }}</text>
+          <text class="hint">{{ progress.state().chatId === group.id ? 'Selezionato' : 'Tocca per scegliere questo gruppo' }}</text>
+        </pressable>
+      }
+      @if (canContinue()) {
+        <text class="success">Gruppo collegato · codice {{ progress.state().chatId }}. Premi Continua per il prossimo passaggio.</text>
+      }
+      <pressable accessibilityRole="button" (press)="manualGroup.set(!manualGroup())"><text class="action">{{ manualGroup() ? 'Nascondi inserimento manuale' : 'Ho già il codice del gruppo' }}</text></pressable>
+      @if (manualGroup()) {
+        <text class="hint">Inserisci il CHAT_ID fornito dal servizio che gestisce il tuo bot. È un numero negativo, diverso dal nome o dal link del gruppo.</text>
+        <text-input accessibilityLabel="CHAT_ID del gruppo" placeholder="Esempio: -1001234567890" [value]="progress.state().chatId"
+          (changeText)="progress.update({ chatId: $event.trim() })" />
+      }
+    }
+    @case (3) {
+      <github-setup />
+    }
+    @case (4) {
+      <bot-settings [guided]="true" />
+    }
+    @case (5) {
+      <text>Controlla il riepilogo, poi avvia la prima prova quando sei pronto.</text>
+      <text class="label">Bot: @{{ progress.state().botUsername }}</text>
+      <text class="label">Gruppo: {{ progress.state().chatId }}</text>
+      <text class="label">Repository: {{ connection().owner }}/{{ connection().repo }}</text>
+      <text class="label">Branch: {{ connection().branch }}</text>
+      <text class="hint">La prova avvia il workflow in modalità start e può pubblicare un vero sondaggio nel gruppo. Se un sondaggio è già attivo, il workflow salta l’invio. Gli orari sono quelli definiti nel workflow.</text>
+      @if (!connection().token) {
+        <text class="hint">Per inviare la prova torna al passaggio 5 e reinserisci il token GitHub.</text>
+      }
+      @if (!confirmTest() && !dispatched()) {
+        <pressable class="button" accessibilityRole="button" [disabled]="!connection().token || sending()" (press)="confirmTest.set(true)">
+          <text class="buttonLabel">Invia un sondaggio di prova nel gruppo</text>
+        </pressable>
+      }
+      @if (confirmTest()) {
+        <text>Vuoi avviare il sondaggio reale nel gruppo {{ progress.state().chatId }}?</text>
+        <pressable class="button" accessibilityRole="button" [disabled]="sending()" (press)="sendTest()"><text class="buttonLabel">Conferma e avvia il workflow</text></pressable>
+        <pressable accessibilityRole="button" [disabled]="sending()" (press)="confirmTest.set(false)"><text class="action">Annulla</text></pressable>
+      }
+      @if (sending()) { <text>Richiesta in corso…</text> }
+      <pressable accessibilityRole="button" (press)="openRuns()"><text class="action">Controlla le esecuzioni su GitHub</text></pressable>
+      <text class="hint">Completa la guida anche se preferisci provare più tardi. L’app non verifica i Secrets né l’esito del workflow: controlla Actions e il gruppo Telegram.</text>
+    }
+  }
+  <pressable accessibilityRole="button" (press)="help.set(!help())"><text class="action">{{ help() ? 'Nascondi aiuto' : 'Hai problemi?' }}</text></pressable>
+  @if (help()) { <text class="hint">{{ helpTexts[progress.state().step] }}</text> }
+  <text accessibilityRole="alert" class="hint">{{ message() }}</text>
+  <text class="hint">{{ progress.storageError() }}</text>
+  <view class="navigation">
+    <pressable accessibilityRole="button" [disabled]="progress.state().step === 0 || sending() || searching()" (press)="back()"><text class="action">Indietro</text></pressable>
+    <pressable class="button" accessibilityRole="button" [disabled]="!canContinue() || sending() || searching()" (press)="next()">
+      <text class="buttonLabel">{{ progress.state().step === 5 ? 'Completa la guida' : 'Continua' }}</text>
+    </pressable>
+  </view>
+</view>

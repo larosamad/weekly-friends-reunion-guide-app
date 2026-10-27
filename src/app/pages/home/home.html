@@ -1,0 +1,28 @@
+<text class="hint">Organizza i vostri incontri con un sondaggio Telegram. Ti accompagniamo dalla creazione del bot alla prima prova.</text>
+<view class="card">
+  <text class="heading">Da dove vuoi iniziare?</text>
+  <text class="hint">Servono Telegram, un account GitHub e circa 10–15 minuti. I passaggi su Telegram e GitHub si completano nei rispettivi servizi.</text>
+  <pressable class="button" accessibilityRole="button" (press)="startSetup.emit()">
+    <text class="buttonLabel">{{ progress.state().completed ? 'Rivedi la guida' : progress.state().step > 0 ? 'Riprendi la configurazione' : 'Configura un nuovo bot' }}</text>
+  </pressable>
+  @if (progress.state().step > 0 && !progress.state().completed) {
+    <text class="hint">Riparti dal passaggio {{ progress.state().step + 1 }} di 6.</text>
+  }
+  @if (progress.state().completed) {
+    <text class="hint">Guida completata. Controlla su GitHub Actions che il bot funzioni correttamente.</text>
+  }
+  <pressable accessibilityRole="button" (press)="manageBot.emit()"><text class="action">Gestisci un bot già configurato</text></pressable>
+  @if (!confirmReset()) {
+    <pressable accessibilityRole="button" [disabled]="editor.busy()" (press)="confirmReset.set(true)">
+      <text class="action">Ricomincia la configurazione</text>
+    </pressable>
+  } @else {
+    <text class="hint">Vuoi ricominciare? Verranno azzerati l’avanzamento, i dati inseriti e le modifiche non salvate nell’app. Il bot, il gruppo Telegram e il repository GitHub rimarranno invariati.</text>
+    <pressable class="button" accessibilityRole="button" [disabled]="editor.busy()" (press)="restart()">
+      <text class="buttonLabel">Conferma e ricomincia</text>
+    </pressable>
+    <pressable accessibilityRole="button" (press)="confirmReset.set(false)"><text class="action">Annulla</text></pressable>
+  }
+  <text class="hint">Salviamo sul dispositivo l’avanzamento, lo username del bot, il CHAT_ID e il repository. I token restano esclusi.</text>
+  <text class="hint">{{ progress.storageError() }}</text>
+</view>

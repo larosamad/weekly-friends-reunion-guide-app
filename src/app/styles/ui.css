@@ -1,0 +1,12 @@
+.eyebrow { color: var(--color-text-muted); font-size: 12px; font-weight: 700; letter-spacing: 2px; }
+.title { color: var(--color-text); font-size: 32px; font-weight: 700; }
+.hint { color: var(--color-text-muted); font-size: 14px; line-height: 21px; }
+.card { padding: 20px; gap: 12px; background-color: var(--color-surface); border-radius: 20px; }
+.heading { color: var(--color-text); font-size: 21px; font-weight: 700; }
+.label { color: var(--color-text); font-size: 14px; font-weight: 600; }
+text-input { color: var(--color-text); background-color: var(--color-background); padding: 12px; border-radius: 10px; font-size: 16px; }
+.button { background-color: var(--color-primary); border-radius: 12px; padding: 16px; align-items: center; }
+.buttonLabel { color: var(--color-surface); font-size: 16px; font-weight: 600; }
+.option { flex-direction: row; align-items: center; gap: 12px; }
+.action { color: var(--color-primary); padding: 8px; font-weight: 600; }
+.status { color: var(--color-text); font-size: 15px; }

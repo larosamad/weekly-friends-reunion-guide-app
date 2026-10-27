@@ -53,3 +53,33 @@ test('starts the existing workflow in start mode', async () => {
   expect(request.mock.calls[0][0]).toBe('https://api.github.com/repos/owner/bot/actions/workflows/telegram-poll.yml/dispatches');
   expect(JSON.parse(request.mock.calls[0][1].body)).toEqual({ ref: 'main', inputs: { mode: 'start' } });
 });
+
+
+test('distinguishes an inaccessible repository from a missing configuration', async () => {
+  const request = vi.fn()
+    .mockResolvedValueOnce(new Response('', { status: 404 }))
+    .mockResolvedValueOnce(new Response('', { status: 404 }));
+  vi.stubGlobal('fetch', request);
+  await expect(new BotConfigRepository().load(connection)).rejects.toThrow('verifica che il token GitHub includa proprio questa copia');
+  expect(request).toHaveBeenCalledTimes(2);
+});
+
+test('identifies an incorrect branch after confirming repository access', async () => {
+  const request = vi.fn()
+    .mockResolvedValueOnce(new Response('', { status: 404 }))
+    .mockResolvedValueOnce(new Response('{}'))
+    .mockResolvedValueOnce(new Response('', { status: 404 }));
+  vi.stubGlobal('fetch', request);
+  await expect(new BotConfigRepository().load(connection)).rejects.toThrow('il branch main non esiste');
+  expect(request.mock.calls[2][0]).toBe('https://api.github.com/repos/owner/bot/branches/main');
+});
+
+test('reports an incompatible bot copy only after confirming repository and branch access', async () => {
+  const request = vi.fn()
+    .mockResolvedValueOnce(new Response('', { status: 404 }))
+    .mockResolvedValueOnce(new Response('{}'))
+    .mockResolvedValueOnce(new Response('{}'));
+  vi.stubGlobal('fetch', request);
+  await expect(new BotConfigRepository().load(connection)).rejects.toThrow('manca bot_config.json');
+  expect(request.mock.calls.every(call => !call[1].method)).toBe(true);
+});

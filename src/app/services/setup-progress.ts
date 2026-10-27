@@ -36,6 +36,8 @@ export class SetupProgress {
       this.state.set(restored);
     } catch { this.storageError.set('Non riesco a recuperare l’avanzamento precedente. Puoi iniziare una nuova guida.'); }
   }
+  reset() { this.update({ ...defaults }); }
+
   update(patch: Partial<SetupState>) {
     this.state.update(s => ({ ...s, ...patch }));
     try {
