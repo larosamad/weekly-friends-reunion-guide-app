@@ -1,7 +1,8 @@
 <safe-area-provider>
   <safe-area-view class="screen">
     <keyboard-avoiding-view [style]="{ flex: 1 }" behavior="padding">
-    <scroll-view [style]="{ flex: 1 }" keyboardShouldPersistTaps="handled">
+    <scroll-view optionDragScroll nativeID="main-scroll" [style]="{ flex: 1 }" keyboardShouldPersistTaps="handled"
+      [scrollEnabled]="!drag.active()" (contentSizeChange)="drag.contentHeight.set($event.height)">
       <view class="body">
         <text class="eyebrow">FRIENDS REUNION</text>
         <text class="title">Il tuo gruppo. </text>
@@ -9,7 +10,7 @@
         @if (mode() === 'home') {
           <home-page (startSetup)="mode.set('guide')" (manageBot)="mode.set('manage')" />
         } @else {
-          <pressable accessibilityRole="button" [disabled]="editor.busy()" (press)="mode.set('home')"><text class="action">Torna alla home</text></pressable>
+          <pressable accessibilityRole="button" [disabled]="editor.busy() || drag.active()" (press)="mode.set('home')"><text class="action">Torna alla home</text></pressable>
           @if (mode() === 'guide') {
             <setup-page (finished)="mode.set('home')" />
           } @else {

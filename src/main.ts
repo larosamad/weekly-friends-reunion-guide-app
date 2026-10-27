@@ -9,8 +9,10 @@ import { getFabricUIManager, registerPlatformComponents } from '@ng-native/fabri
 import { App } from './app/app.ts';
 import { File, Paths } from 'expo-file-system';
 import { SETUP_STORAGE } from './app/services/setup-progress.ts';
+import { registerExpoUiViews } from '@ng-native/expo';
 
 registerPlatformComponents(Platform.OS);
+registerExpoUiViews(Platform.OS);
 
 AppRegistry.registerRunnable('main', ({ rootTag }) => {
 	const app = mount(Number(rootTag), App, getFabricUIManager(), {

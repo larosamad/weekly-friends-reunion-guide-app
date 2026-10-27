@@ -44,10 +44,9 @@ non modifica né rimuove i webhook esistenti.
 La preparazione su Telegram e GitHub rimane manuale, con istruzioni e collegamenti
 diretti dalla guida. Nel fork lascia attiva l’opzione **Copy the main branch only**.
 Ogni utente usa il proprio bot, i propri Secrets e le Actions del proprio account.
-Il codice non contiene più `poll_info.json`: il workflow gestisce automaticamente
-il branch separato `bot-state`, contenente solo `state.json`. Lo stato è associato
-all’ID del repository e alla destinazione Telegram; le copie estranee vengono
-ignorate, anche se qualcuno copia tutti i branch.
+Il workflow del bot salva `poll_info.json` per il sondaggio attivo e
+`schedule_state.json` per ricordare l’ultimo invio settimanale. I nuovi stati sono
+associati al repository e al gruppo Telegram; gli stati di altre copie vengono ignorati.
 
 Il passaggio finale permette di avviare `telegram-poll.yml` in modalità `start`,
 con una conferma esplicita: può creare un sondaggio reale nel gruppo. Per questa
@@ -64,7 +63,7 @@ L’app Angular Native (iOS/Android) legge e modifica `bot_config.json` nel repo
 del bot usando le API GitHub. Non serve un server aggiuntivo.
 
 1. Pubblica nel repository `weekly-friends-reunion-telegram-poll-bot` le modifiche
-   a `bot.py` e i nuovi file `config.py` e `bot_config.json`.
+   a `bot.py`, `config.py`, `scheduler.py`, `bot_config.json` e al workflow.
 2. Crea un token GitHub fine-grained limitato a quel repository, con permesso
    **Contents: Read and write**. Il branch deve consentire i commit diretti.
 3. Avvia l’app con `npm start`, aprila su Android/iOS con Expo e inserisci
@@ -74,13 +73,28 @@ del bot usando le API GitHub. Non serve un server aggiuntivo.
    Ogni salvataggio crea un commit su quel branch.
 
 Sono modificabili opzioni e ordine, opzione esclusa, soglia minima dello spareggio,
-domande e nome del gruppo. Sono ammesse da 2 a 10 opzioni univoche, lunghe al massimo
+domande e nome del gruppo. Sono ammesse da 2 a 12 opzioni univoche, lunghe al massimo
 100 caratteri; le domande hanno un limite di 300 caratteri. L’opzione esclusa deve
 corrispondere esattamente a una delle opzioni e la soglia deve essere un intero positivo.
 
+Per riordinare le risposte, tieni premuta la maniglia **≡** e trascina la riga.
+La pagina scorre automaticamente vicino ai bordi. Rilascia per confermare l’ordine,
+poi premi **Salva su GitHub**. La risposta per chi non partecipa mantiene la sua
+posizione automatica. Con un lettore di schermo sono disponibili le azioni
+**Sposta prima** e **Sposta dopo**.
+
 Il bot rilegge la configurazione a ogni avvio: le modifiche valgono anche per la
 chiusura di un sondaggio già attivo, ma non riscrivono il messaggio Telegram già inviato.
-Gli orari del workflow restano quelli configurati in GitHub Actions.
+Nella sezione **Quando parte il sondaggio** puoi scegliere giorno settimanale,
+ora italiana e durate di primo sondaggio e spareggio. I valori sono salvati sotto
+`SCHEDULE` in `bot_config.json`. I file precedenti usano domenica 11:07, durata
+22 ore più 8 ore per l’eventuale spareggio. Le scadenze di un sondaggio già attivo
+restano quelle assegnate all’invio. Il controllo avviene ogni 15 minuti e GitHub
+può ritardarlo. La programmazione funziona con l’app chiusa.
+
+Per attivare questa funzione serve anche il workflow aggiornato e `scheduler.py`
+nel branch predefinito del bot: salvare solo il JSON non modifica le esecuzioni
+di una versione precedente del workflow.
 
 Il token GitHub è mascherato e mantenuto solo in memoria: va reinserito quando il
 processo dell’app viene riavviato. `BOT_TOKEN` e `CHAT_ID` rimangono nei GitHub Secrets.

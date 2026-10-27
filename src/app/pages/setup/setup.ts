@@ -8,6 +8,7 @@ import { BotEditor } from '../../services/bot-editor';
   styleUrls: ['./setup.css'],
 })
 export class SetupPage {
+  // The guide reads readiness directly from the shared editor.
   readonly editor = inject(BotEditor);
   readonly finished = output<void>();
 }

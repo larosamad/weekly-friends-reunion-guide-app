@@ -1,1 +1,4 @@
-<setup-guide [connection]="editor.connection()" [configured]="!!editor.draft() && !editor.dirty()" (finished)="finished.emit()" />
+<setup-guide
+	[connection]="editor.connection()"
+	(finished)="finished.emit()"
+/>

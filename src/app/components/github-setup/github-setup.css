@@ -1,4 +1,4 @@
 :host { gap: 12px; }
-.section { gap: 12px; padding: 16px; border-width: 1px; border-color: var(--color-border); border-radius: 12px; }
+.section { gap: 12px; padding-top: 12px; padding-bottom: 12px; border-bottom-width: 1px; border-color: var(--color-border); }
 .section-title { color: var(--color-text); font-size: 16px; font-weight: 600; padding-top: 4px; padding-bottom: 4px; }
 .code { color: var(--color-text); background-color: var(--color-background); padding: 12px; border-radius: 8px; font-size: 14px; }

@@ -1,2 +1,4 @@
 :host { gap: 16px; }
+.settings-section { gap: 12px; }
+.guided text-input { background-color: var(--color-surface); }
 .example { color: var(--color-text); background-color: var(--color-background); padding: 12px; border-radius: 8px; font-size: 13px; }

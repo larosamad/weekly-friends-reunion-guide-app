@@ -1,0 +1,31 @@
+<text class="label">Risposte per chi partecipa (da 1 a {{ editor.maxOptions - 1 }})</text>
+<text class="hint">Tieni premuta la maniglia ≡ e trascina per cambiare l’ordine. La risposta per chi non partecipa è già inclusa.</text>
+<view class="option-list">
+  @for (option of editor.participationOptions(); track option.index; let i = $index) {
+    <view class="option" [class.dragged]="dragging()?.from === i" [style]="rowStyle(i)"
+      [nativeID]="'option-row-' + i" (layout)="measure(option.index, $event)">
+      <view reorderHandle class="handle" accessibilityRole="button" [focusable]="true"
+        [accessibilityLabel]="'Sposta opzione ' + (i + 1)"
+        accessibilityHint="Tieni premuto e trascina. Puoi anche usare le azioni Sposta prima e Sposta dopo."
+        [accessibilityActions]="actions" (accessibilityAction)="accessibleMove(i, $event)"
+        [blocked]="editor.busy() || editor.participationOptions().length < 2"
+        [accessibilityState]="{ disabled: editor.busy() || editor.participationOptions().length < 2 }"
+        (dragStart)="start(i, $event)" (dragMove)="move($event)" (dragEnd)="finish()" (dragCancel)="finish(true)">
+        <text class="handle-label">≡</text>
+      </view>
+      <text-input [style]="{ flex: 1 }" [accessibilityLabel]="'Opzione ' + (i + 1)"
+        [value]="option.value" [editable]="!editor.busy() && !drag.active()" (changeText)="editor.setOption(option.index, $event)" />
+      <pressable class="remove-button" accessibilityRole="button" [accessibilityLabel]="'Rimuovi opzione ' + (i + 1)"
+        [class.disabled]="editor.busy() || drag.active() || editor.participationOptions().length <= 1"
+        [disabled]="editor.busy() || drag.active() || editor.participationOptions().length <= 1" (press)="editor.removeOption(option.index)">
+        <ng-icon name="heroTrash" [size]="20" color="var(--color-primary)" [strokeWidth]="1.5" />
+      </pressable>
+    </view>
+  }
+</view>
+@if (dragging()) {
+  <text accessibilityLiveRegion="polite" class="hint">Sposta alla posizione {{ target() + 1 }}. Rilascia per confermare.</text>
+}
+<pressable accessibilityRole="button" [disabled]="editor.busy() || drag.active() || (editor.draft()?.OPTIONS?.length ?? 0) >= editor.maxOptions" (press)="editor.addOption()">
+  <text class="action">+ Aggiungi opzione</text>
+</pressable>

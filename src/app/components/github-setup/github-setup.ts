@@ -19,4 +19,9 @@ export class GithubSetup {
     this.section.set(index);
   }
   open(url: string) { this.links.open(url); }
+  openWorkflow() {
+    const { owner, repo } = this.progress.state();
+    if (!owner.trim() || !repo.trim()) return;
+    this.open(`https://github.com/${encodeURIComponent(owner.trim())}/${encodeURIComponent(repo.trim())}/actions/workflows/telegram-poll.yml`);
+  }
 }

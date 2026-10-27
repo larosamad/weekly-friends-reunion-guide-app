@@ -58,31 +58,45 @@ test('extracts only groups and deduplicates them', () => {
 });
 
 test('test dispatch requires confirmation and does not claim delivery', async () => {
-  const startPoll = vi.fn().mockResolvedValue(undefined);
+  const startPoll = vi.fn().mockResolvedValue({ id: 42, url: 'https://github.com/amici/bot/actions/runs/42' });
+  const pollRunStatus = vi.fn()
+    .mockResolvedValueOnce({ completed: false, message: 'Prova in attesa.' })
+    .mockResolvedValueOnce({ completed: true, message: 'Nessun nuovo sondaggio inviato: risulta già un sondaggio attivo.' });
   await render(SetupGuide, {
-    inputs: { connection, configured: true },
+    inputs: { connection },
     providers: [
       { provide: SETUP_STORAGE, useValue: { read: () => JSON.stringify({ ...state, step: 5, chatId: '-100123' }), write: () => {} } },
-      { provide: BotConfigRepository, useValue: { startPoll } },
+      { provide: BotConfigRepository, useValue: { startPoll, pollRunStatus } },
     ],
   });
   const user = userEvent.setup();
   await user.press(screen.getByRole('button', { name: 'Invia un sondaggio di prova nel gruppo' }));
   expect(startPoll).not.toHaveBeenCalled();
   await user.press(screen.getByRole('button', { name: 'Conferma e avvia il workflow' }));
-  await screen.findByText('Richiesta accettata da GitHub. Controlla l’esito in Actions e nel gruppo Telegram.');
+  await screen.findByText('Prova in attesa.');
   expect(startPoll).toHaveBeenCalledExactlyOnceWith(connection);
+  expect(pollRunStatus).toHaveBeenCalledExactlyOnceWith(connection, 42);
+  await user.press(screen.getByRole('button', { name: 'Aggiorna esito' }));
+  await screen.findByText('Nessun nuovo sondaggio inviato: risulta già un sondaggio attivo.');
+  expect(startPoll).toHaveBeenCalledTimes(1);
 });
 
-test('personalization requires a loaded saved configuration', async () => {
-  const result = await render(SetupGuide, {
-    inputs: { connection, configured: false },
-    providers: [{ provide: SETUP_STORAGE, useValue: { read: () => JSON.stringify({ ...state, step: 4 }), write: () => {} } }],
+test('personalization reads readiness from the loaded editor', async () => {
+  await render(SetupGuide, {
+    inputs: { connection },
+    providers: [
+      { provide: SETUP_STORAGE, useValue: { read: () => JSON.stringify({ ...state, step: 4 }), write: () => {} } },
+      { provide: BotConfigRepository, useValue: { load: vi.fn().mockResolvedValue({ sha: 'old', config: {
+        OPTIONS: ['Non posso', 'Venerdì'], EXCLUDED_OPTION: 'Non posso', MIN_TIEBREAK_VOTES: 3,
+        FIRST_POLL_QUESTION: 'Quando?', TIEBREAK_QUESTION: 'Spareggio?', GROUP_NAME: 'Amici',
+      } }) } },
+    ],
   });
   const user = userEvent.setup();
   await user.press(screen.getByRole('button', { name: 'Continua' }));
   expect(screen.getByText('PASSAGGIO 5 DI 6')).toBeTruthy();
-  await result.rerender({ inputs: { configured: true } });
+  await user.press(screen.getByRole('button', { name: 'Carica configurazione' }));
+  await screen.findByText('Configurazione caricata da GitHub.');
   await user.press(screen.getByRole('button', { name: 'Continua' }));
   expect(screen.getByText('PASSAGGIO 6 DI 6')).toBeTruthy();
 });

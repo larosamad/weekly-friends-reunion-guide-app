@@ -1,10 +1,12 @@
 import { Component, inject, input, output, signal } from '@angular/core';
 import { Pressable, Text, TextInput, View } from '@ng-native/components';
 import { DeepLinks, OS } from '@ng-native/device';
-import { BotConfigRepository, type Connection } from '../../services/bot-config';
+import { BotConfigRepository, type Connection, type PollRun } from '../../services/bot-config';
 import { SetupProgress } from '../../services/setup-progress';
 import { TelegramSetup } from '../../services/telegram-setup';
 import { GithubSetup } from '../github-setup/github-setup';
+import { BotEditor } from '../../services/bot-editor';
+import { OptionDrag } from '../../services/option-drag';
 import { BotSettings } from '../bot-settings/bot-settings';
 
 @Component({
@@ -14,24 +16,16 @@ import { BotSettings } from '../bot-settings/bot-settings';
   styleUrl: './setup-guide.css',
 })
 export class SetupGuide {
+  readonly editor = inject(BotEditor);
+  readonly drag = inject(OptionDrag);
   readonly commandStyle = { fontFamily: inject(OS) === 'ios' ? 'Menlo' : 'monospace' };
   readonly progress = inject(SetupProgress);
   private readonly links = inject(DeepLinks);
   private readonly repository = inject(BotConfigRepository);
   private readonly telegram = inject(TelegramSetup);
   readonly connection = input.required<Connection>();
-  readonly configured = input(false);
   readonly finished = output<void>();
   readonly titles = ['Crea il tuo bot', 'Aggiungilo al gruppo', 'Collega il gruppo', 'Configura GitHub', 'Personalizza il sondaggio', 'Prova e completa'];
-  readonly helpTexts = [
-    'Lo username deve terminare con bot ed essere disponibile. Se perdi il token, gestiscilo tramite BotFather.',
-    'Controlla di aver aggiunto proprio il bot creato al passaggio 1. Il comando deve includere il suo username.',
-    'Se non trovi il token, apri BotFather e usa /mybots per scegliere il tuo bot e recuperare il token API. Se il gruppo non compare, invia nuovamente il comando al suo interno e ripeti la ricerca. Se il bot è gestito da un altro servizio, usa l’inserimento manuale.',
-    'Un errore 404 può indicare repository privato non accessibile al token o file non ancora pubblicati. Un errore 403 può indicare permessi mancanti.',
-    'L’opzione esclusa deve comparire nella lista. Non puoi salvare opzioni duplicate o una soglia inferiore a 1.',
-    'Richiesta accettata non significa sondaggio inviato. In Actions apri l’ultima esecuzione e controlla Run bot e Check poll state. Il branch bot-state conserva lo stato: se c’è già un sondaggio attivo il nuovo invio viene saltato.',
-  ];
-  readonly help = signal(false);
   readonly message = signal('');
   readonly telegramToken = signal('');
   readonly searching = signal(false);
@@ -42,29 +36,51 @@ export class SetupGuide {
   readonly confirmTest = signal(false);
   readonly sending = signal(false);
   readonly dispatched = signal(false);
+  readonly testRun = signal<PollRun | null>(null);
+  readonly checkingRun = signal(false);
+  readonly testMessage = signal('');
   canContinue() {
     const state = this.progress.state();
     if (state.step === 0) return /^[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(state.botUsername) && /bot$/i.test(state.botUsername);
     if (state.step === 2) return /^-[1-9]\d*$/.test(state.chatId) && Number.isSafeInteger(Number(state.chatId));
-    if (state.step === 4) return this.configured();
+    if (state.step === 4) return !!this.editor.draft();
     return true;
   }
-  next() {
-    if (!this.canContinue() || this.sending() || this.searching()) return;
+  async next() {
+    if (!this.canContinue() || this.sending() || this.searching() || this.drag.active() || this.editor.busy()) return;
+    if (this.progress.state().step === 4 && this.editor.dirty()) {
+      this.message.set('');
+      if (!await this.editor.save()) {
+        this.message.set(`Non posso continuare. ${this.editor.status() || 'Non riesco a salvare. Ricarica la configurazione e riprova.'}`);
+        return;
+      }
+    }
     if (this.progress.state().step === 5) {
       this.progress.update({ completed: true }); this.finished.emit(); return;
     }
     this.move(this.progress.state().step + 1);
   }
-  back() { if (!this.sending() && !this.searching()) this.move(Math.max(0, this.progress.state().step - 1)); }
+  back() { if (!this.sending() && !this.searching() && !this.drag.active() && !this.editor.busy()) this.move(Math.max(0, this.progress.state().step - 1)); }
   private move(step: number) {
-    this.progress.update({ step }); this.help.set(false); this.message.set('');
+    this.progress.update({ step }); this.message.set('');
     this.telegramToken.set(''); this.prepared.set(false); this.groups.set([]); this.confirmTest.set(false); this.searched.set(false);
   }
   open(url: string) { this.links.open(url); }
   openRuns() {
     const c = this.connection();
     this.open(`https://github.com/${encodeURIComponent(c.owner.trim())}/${encodeURIComponent(c.repo.trim())}/actions`);
+  }
+  openTestRun() { const run = this.testRun(); if (run) this.open(run.url); }
+  async refreshTest() {
+    const run = this.testRun();
+    if (!run || this.checkingRun()) return;
+    this.checkingRun.set(true);
+    try {
+      const status = await this.repository.pollRunStatus(this.connection(), run.id);
+      this.testMessage.set(status.message);
+    } catch (error) {
+      this.testMessage.set(error instanceof Error ? error.message : 'Non riesco a recuperare l’esito. Apri i dettagli della prova.');
+    } finally { this.checkingRun.set(false); }
   }
   setTelegramToken(value: string) {
     this.telegramToken.set(value);
@@ -101,9 +117,10 @@ export class SetupGuide {
     if (!this.confirmTest() || this.sending() || !this.connection().token || this.dispatched()) return;
     this.sending.set(true); this.message.set('');
     try {
-      await this.repository.startPoll(this.connection());
+      this.testRun.set(await this.repository.startPoll(this.connection()));
       this.dispatched.set(true); this.confirmTest.set(false);
-      this.message.set('Richiesta accettata da GitHub. Controlla l’esito in Actions e nel gruppo Telegram.');
+      this.testMessage.set('Prova avviata. Sto controllando l’esecuzione su GitHub.');
+      await this.refreshTest();
     } catch (error) {
       this.message.set(error instanceof Error ? error.message : 'Connessione non riuscita. Controlla Actions prima di riprovare.');
     } finally { this.sending.set(false); }

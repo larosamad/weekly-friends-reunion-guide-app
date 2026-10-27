@@ -1,0 +1,67 @@
+<text class="heading">Quando parte il sondaggio</text>
+<pressable class="schedule-row" accessibilityRole="button"
+  [accessibilityLabel]="'Giorno: ' + editor.weekdays[editor.schedule().weekday]"
+  [accessibilityState]="{ expanded: picker() === 'day' }" [disabled]="editor.busy()"
+  (press)="picker.set(picker() === 'day' ? null : 'day')">
+  <text class="label">Giorno</text>
+  <text class="schedule-value">{{ editor.weekdays[editor.schedule().weekday] }} ⌄</text>
+</pressable>
+@if (picker() === 'day') {
+  <view accessibilityRole="radiogroup" accessibilityLabel="Giorno della settimana">
+    @for (day of days; track day.value) {
+      <pressable class="day-choice" accessibilityRole="radio" [accessibilityLabel]="day.label"
+        [accessibilityState]="{ checked: editor.schedule().weekday === day.value }"
+        [disabled]="editor.busy()" (press)="setDay(day.value)">
+        <text class="day-label">{{ day.label }}</text>
+        @if (editor.schedule().weekday === day.value) { <text class="schedule-value">✓</text> }
+      </pressable>
+    }
+  </view>
+}
+<pressable class="schedule-row" accessibilityRole="button" [accessibilityLabel]="'Ora: ' + editor.schedule().time"
+  [accessibilityState]="{ expanded: picker() === 'time' }" [disabled]="editor.busy()"
+  (press)="openTime()">
+  <text class="label">Ora</text>
+  <text class="schedule-value">{{ editor.schedule().time }} ⌄</text>
+</pressable>
+@if (picker() === 'time') {
+  @if (android) {
+    <ui-host [matchContents]="true" ignoreSafeArea="all">
+      <ui-time-picker-dialog androidPickerTheme nativeID="schedule-time" [initialDate]="time().getTime()"
+        (dateSelected)="confirmAndroidTime($event.nativeEvent.date)" (dismissRequest)="picker.set(null)" />
+    </ui-host>
+  } @else {
+  <modal [transparent]="true" animationType="fade" (requestClose)="picker.set(null)">
+    <view class="time-backdrop">
+      <view class="time-dialog" accessibilityViewIsModal="true">
+        <text class="heading">Ora di partenza</text>
+  <ui-host [matchContents]="{ vertical: true }" ignoreSafeArea="all">
+    <ui-date-picker androidPickerTheme nativeID="schedule-time" title="Ora" accessibilityLabel="Ora di partenza"
+      [displayedComponents]="['hourAndMinute']" [value]="pendingTime()" (valueChange)="pendingTime.set($event)"
+      [modifiers]="[{ $type: 'datePickerStyle', style: 'wheel' }, { $type: 'tint', tint: { type: 'color', color: '#22684c' } }]"
+      [disabled]="editor.busy()" />
+  </ui-host>
+        <view class="time-actions">
+          <pressable accessibilityRole="button" (press)="picker.set(null)"><text class="action">Annulla</text></pressable>
+          <pressable accessibilityRole="button" (press)="confirmTime()"><text class="action">Conferma</text></pressable>
+        </view>
+      </view>
+    </view>
+  </modal>
+  }
+}
+<text class="hint">{{ editor.scheduleSummary() }}</text>
+<pressable accessibilityRole="button" [accessibilityState]="{ expanded: durationsOpen() }" (press)="durationsOpen.set(!durationsOpen())">
+  <text class="action">{{ durationsOpen() ? 'Nascondi durate' : 'Durata dei sondaggi' }}</text>
+</pressable>
+@if (durationsOpen()) {
+  <text class="label">Durata del primo sondaggio (ore)</text>
+  <text-input accessibilityLabel="Durata del primo sondaggio (ore)" keyboardType="number-pad"
+    [value]="editor.firstPollHours()" [editable]="!editor.busy()" (changeText)="editor.setDuration('first', $event)" />
+  <text class="label">Durata dello spareggio (ore)</text>
+  <text class="hint">Lo spareggio parte solo se serve, alla chiusura del primo sondaggio.</text>
+  <text-input accessibilityLabel="Durata dello spareggio (ore)" keyboardType="number-pad"
+    [value]="editor.tiebreakHours()" [editable]="!editor.busy()" (changeText)="editor.setDuration('tiebreak', $event)" />
+  <text class="hint">Le due durate insieme devono essere inferiori a una settimana.</text>
+}
+<text class="hint">L’invio può avvenire dopo l’orario scelto. Salva per applicare le modifiche.</text>

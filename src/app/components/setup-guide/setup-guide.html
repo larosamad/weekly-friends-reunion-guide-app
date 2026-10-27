@@ -1,4 +1,4 @@
-<view class="card">
+<view class="setup-content">
   <text class="eyebrow">PASSAGGIO {{ progress.state().step + 1 }} DI 6</text>
   <view class="progress">
     @for (title of titles; track $index) {
@@ -90,7 +90,12 @@
       <text class="label">Gruppo: {{ progress.state().chatId }}</text>
       <text class="label">Repository: {{ connection().owner }}/{{ connection().repo }}</text>
       <text class="label">Branch: {{ connection().branch }}</text>
-      <text class="hint">La prova avvia il workflow in modalità start e può pubblicare un vero sondaggio nel gruppo. Se un sondaggio è già attivo, il workflow salta l’invio. Gli orari sono quelli definiti nel workflow.</text>
+      @if (editor.draft()) {
+        <text class="hint">{{ editor.scheduleSummary() }}</text>
+      } @else {
+        <text class="hint">La programmazione è quella salvata nel tuo progetto GitHub.</text>
+      }
+      <text class="hint">La prova avvia il workflow in modalità start e può pubblicare un vero sondaggio nel gruppo. Se un sondaggio è già attivo, il workflow salta l’invio. La prova parte subito; gli invii successivi seguono la programmazione salvata.</text>
       @if (!connection().token) {
         <text class="hint">Per inviare la prova torna al passaggio 5 e reinserisci il token GitHub.</text>
       }
@@ -105,18 +110,21 @@
         <pressable accessibilityRole="button" [disabled]="sending()" (press)="confirmTest.set(false)"><text class="action">Annulla</text></pressable>
       }
       @if (sending()) { <text>Richiesta in corso…</text> }
+      @if (testRun()) {
+        <text accessibilityRole="alert">{{ testMessage() }}</text>
+        <pressable accessibilityRole="button" [disabled]="checkingRun()" (press)="refreshTest()"><text class="action">{{ checkingRun() ? 'Verifica in corso…' : 'Aggiorna esito' }}</text></pressable>
+        <pressable accessibilityRole="button" (press)="openTestRun()"><text class="action">Apri i dettagli della prova</text></pressable>
+      }
       <pressable accessibilityRole="button" (press)="openRuns()"><text class="action">Controlla le esecuzioni su GitHub</text></pressable>
-      <text class="hint">Completa la guida anche se preferisci provare più tardi. L’app non verifica i Secrets né l’esito del workflow: controlla Actions e il gruppo Telegram.</text>
+      <text class="hint">Puoi completare la guida anche se preferisci provare più tardi. Dopo l’avvio usa Aggiorna esito per seguire la prova.</text>
     }
   }
-  <pressable accessibilityRole="button" (press)="help.set(!help())"><text class="action">{{ help() ? 'Nascondi aiuto' : 'Hai problemi?' }}</text></pressable>
-  @if (help()) { <text class="hint">{{ helpTexts[progress.state().step] }}</text> }
   <text accessibilityRole="alert" class="hint">{{ message() }}</text>
   <text class="hint">{{ progress.storageError() }}</text>
   <view class="navigation">
-    <pressable accessibilityRole="button" [disabled]="progress.state().step === 0 || sending() || searching()" (press)="back()"><text class="action">Indietro</text></pressable>
-    <pressable class="button" accessibilityRole="button" [disabled]="!canContinue() || sending() || searching()" (press)="next()">
-      <text class="buttonLabel">{{ progress.state().step === 5 ? 'Completa la guida' : 'Continua' }}</text>
+    <pressable accessibilityRole="button" [disabled]="progress.state().step === 0 || sending() || searching() || drag.active() || editor.busy()" (press)="back()"><text class="action">Indietro</text></pressable>
+    <pressable class="button" accessibilityRole="button" [disabled]="!canContinue() || sending() || searching() || drag.active() || editor.busy()" (press)="next()">
+      <text class="buttonLabel">{{ progress.state().step === 4 && editor.busy() ? 'Salvataggio…' : progress.state().step === 5 ? 'Completa la guida' : 'Continua' }}</text>
     </pressable>
   </view>
 </view>

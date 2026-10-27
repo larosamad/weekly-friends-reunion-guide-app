@@ -1,0 +1,9 @@
+:host { gap: 12px; }
+.option-list { gap: 12px; }
+.option { min-height: 56px; background-color: var(--color-surface); border-radius: 10px; }
+.dragged { border-width: 1px; border-color: var(--color-primary); elevation: 4; }
+.handle { min-width: 44px; min-height: 48px; align-items: center; justify-content: center; }
+.handle-label { color: var(--color-primary); font-size: 28px; }
+.remove-button { min-width: 44px; min-height: 48px; align-items: center; justify-content: center; border-radius: 8px; }
+.remove-button.disabled { opacity: 0.35; }
+text-input { color: var(--color-text); background-color: var(--color-background); padding: 12px; border-radius: 10px; font-size: 16px; }

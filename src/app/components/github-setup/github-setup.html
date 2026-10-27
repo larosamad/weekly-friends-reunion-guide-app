@@ -24,7 +24,12 @@
         }
         @case (2) {
           <text class="hint">Apri Impostazioni (Settings) → Actions → Generale (General). Nella sezione Permessi di esecuzione (Workflow permissions), seleziona Lettura e scrittura (Read and write permissions), poi premi Salva (Save).</text>
-          <text class="hint">Poi apri la scheda Actions. Se GitHub chiede di abilitare le esecuzioni automatiche, conferma.</text>
+          <text class="label">Abilita gli invii nella tua copia</text>
+          <text class="hint">Accedi a GitHub con l’account con cui hai creato la copia. Apri il tuo progetto → Actions. Se compare “I understand my workflows, go ahead and enable them”, premi quel pulsante.</text>
+          <text class="hint">Nel menu a sinistra scegli “Telegram weekly poll”. Se compare “Enable workflow” (Abilita esecuzioni), premilo. Questo passaggio è necessario anche se hai già selezionato Read and write permissions.</text>
+          @if (progress.state().owner.trim()) {
+            <pressable class="button" accessibilityRole="button" (press)="openWorkflow()"><text class="buttonLabel">Apri il workflow della mia copia</text></pressable>
+          }
           <pressable accessibilityRole="button" (press)="showSection(3)"><text class="action">Ho attivato le esecuzioni →</text></pressable>
         }
         @case (3) {
@@ -35,7 +40,12 @@
           <text class="label">2. Scegli il tuo progetto</text>
           <text class="hint">Come proprietario (Resource owner) scegli il tuo account. In Accesso ai progetti (Repository access), seleziona Solo progetti selezionati (Only select repositories). Cerca e seleziona la copia creata all’inizio di questo passaggio.</text>
           <text class="label">3. Consenti le due operazioni necessarie</text>
-          <text class="hint">Nella sezione Permessi (Permissions), aggiungi Contenuti (Contents) e Azioni (Actions). Per entrambi scegli Lettura e scrittura (Read and write).</text>
+          <text class="hint">Nella sezione Permessi del repository (Repository permissions), aggiungi questi due permessi e scegli Lettura e scrittura (Read and write) per ciascuno:</text>
+          <text class="label">Contents → Read and write</text>
+          <text class="hint">Permette all’app di leggere e salvare le impostazioni del sondaggio.</text>
+          <text class="label">Actions → Read and write</text>
+          <text class="hint">Permette all’app di avviare il sondaggio di prova.</text>
+          <text class="hint">Prima di generare il codice, verifica che entrambi siano su Read and write, non su Read-only (sola lettura).</text>
           <text class="label">4. Genera e copia il codice</text>
           <text class="hint">Premi Genera codice (Generate token), poi copia il codice lungo che compare. GitHub lo mostra una sola volta: copialo prima di chiudere la pagina.</text>
           <text class="hint">Torna nell’app e premi Continua. Incolla il codice nel campo Token GitHub del prossimo passaggio.</text>

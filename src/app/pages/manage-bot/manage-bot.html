@@ -1,1 +1,6 @@
 <bot-settings />
+@if (editor.draft()) {
+  <pressable class="button" accessibilityRole="button" [disabled]="editor.busy() || drag.active() || !editor.dirty()" (press)="editor.save()">
+    <text class="buttonLabel">Salva su GitHub</text>
+  </pressable>
+}
